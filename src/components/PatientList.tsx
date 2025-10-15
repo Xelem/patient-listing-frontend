@@ -26,21 +26,30 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from './ui/alert-dialog'
-import { User } from 'lucide-react'
+import { Loader2, User } from 'lucide-react'
+import NoData from './NoData'
 
 export default function PatientList() {
     const { patients, addPatient, deletePatient } = usePatients()
     const [selected, setSelected] = useState<Patient | null>(null)
     const [search, setSearch] = useState('')
     const [isOpen, setIsOpen] = useState(false)
+    const [loading, setLoading] = useState(false) // Add loading state
 
     const load = async () => {
-        const data = await PatientService.listPatients()
-        data.forEach((p: Patient) => addPatient(p))
+        setLoading(true) // Start loading
+        try {
+            const data = await PatientService.listPatients()
+            data.forEach((p: Patient) => addPatient(p))
+        } catch (error) {
+            console.error('Error fetching patients:', error)
+        } finally {
+            setLoading(false) // End loading
+        }
     }
 
     useEffect(() => {
-        if (patients.length === 0) load()
+        if (patients.length === 0 && !loading) load()
     }, [])
 
     const handleDelete = async (id?: string) => {
@@ -75,112 +84,128 @@ export default function PatientList() {
                         className="mt-4 mb-4"
                     />
 
-                    <div className="overflow-x-auto">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Photo</TableHead>
-                                    <TableHead>Name</TableHead>
-                                    <TableHead>Gender</TableHead>
-                                    <TableHead>Birth Date</TableHead>
-                                    <TableHead>Phone</TableHead>
-                                    <TableHead>Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filtered.map(p => {
-                                    const name = p.name?.[0]
-                                    const fullName = `${
-                                        name?.given?.join(' ') || ''
-                                    } ${name?.family || ''}`
-                                    const phone =
-                                        p.telecom?.find(
-                                            t => t.system === 'phone',
-                                        )?.value || '—'
-                                    const photoUrl = p.photo?.[0]?.url
+                    {loading ? (
+                        <div className="flex justify-center items-center py-12">
+                            <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+                        </div>
+                    ) : patients.length === 0 ? (
+                        <NoData />
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Photo</TableHead>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Gender</TableHead>
+                                        <TableHead>Birth Date</TableHead>
+                                        <TableHead>Phone</TableHead>
+                                        <TableHead>Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filtered.map(p => {
+                                        const name = p.name?.[0]
+                                        const fullName = `${
+                                            name?.given?.join(' ') || ''
+                                        } ${name?.family || ''}`
+                                        const phone =
+                                            p.telecom?.find(
+                                                t => t.system === 'phone',
+                                            )?.value || '—'
+                                        const photoUrl = p.photo?.[0]?.url
 
-                                    return (
-                                        <TableRow key={p.id}>
-                                            <TableCell>
-                                                {photoUrl ? (
-                                                    <img
-                                                        src={photoUrl}
-                                                        alt="Patient"
-                                                        className="w-10 h-10 rounded-full object-cover border"
-                                                    />
-                                                ) : (
-                                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border">
-                                                        <User className="text-gray-500 w-5 h-5" />
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>{fullName}</TableCell>
-                                            <TableCell>{p.gender}</TableCell>
-                                            <TableCell>
-                                                {p.birthDate || '—'}
-                                            </TableCell>
-                                            <TableCell>{phone}</TableCell>
-                                            <TableCell className="space-x-2">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="hover:shadow-lg hover:cursor-pointer"
-                                                    onClick={() => {
-                                                        setSelected(p)
-                                                        setIsOpen(true)
-                                                    }}
-                                                >
-                                                    Edit
-                                                </Button>
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button
-                                                            variant="destructive"
-                                                            size="sm"
-                                                            className="hover:shadow-lg hover:cursor-pointer"
+                                        return (
+                                            <TableRow key={p.id}>
+                                                <TableCell>
+                                                    {photoUrl ? (
+                                                        <img
+                                                            src={photoUrl}
+                                                            alt="Patient"
+                                                            className="w-10 h-10 rounded-full object-cover border"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center border">
+                                                            <User className="text-gray-500 w-5 h-5" />
+                                                        </div>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {fullName}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {p.gender}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {p.birthDate || '—'}
+                                                </TableCell>
+                                                <TableCell>{phone}</TableCell>
+                                                <TableCell className="space-x-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="hover:shadow-lg hover:cursor-pointer"
+                                                        onClick={() => {
+                                                            setSelected(p)
+                                                            setIsOpen(true)
+                                                        }}
+                                                    >
+                                                        Edit
+                                                    </Button>
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger
+                                                            asChild
                                                         >
-                                                            Delete
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent>
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle>
-                                                                Delete Patient
-                                                            </AlertDialogTitle>
-                                                            <AlertDialogDescription>
-                                                                This action
-                                                                cannot be
-                                                                undone. Are you
-                                                                sure you want to
-                                                                delete this
-                                                                patient’s
-                                                                record?
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>
-                                                                Cancel
-                                                            </AlertDialogCancel>
-                                                            <AlertDialogAction
-                                                                className="bg-red-600 hover:bg-red-700 hover:shadow-lg hover:cursor-pointer"
-                                                                onClick={() =>
-                                                                    handleDelete(
-                                                                        p.id,
-                                                                    )
-                                                                }
+                                                            <Button
+                                                                variant="destructive"
+                                                                size="sm"
+                                                                className="hover:shadow-lg hover:cursor-pointer"
                                                             >
                                                                 Delete
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </TableBody>
-                        </Table>
-                    </div>
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>
+                                                                    Delete
+                                                                    Patient
+                                                                </AlertDialogTitle>
+                                                                <AlertDialogDescription>
+                                                                    This action
+                                                                    cannot be
+                                                                    undone. Are
+                                                                    you sure you
+                                                                    want to
+                                                                    delete this
+                                                                    patient’s
+                                                                    record?
+                                                                </AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>
+                                                                    Cancel
+                                                                </AlertDialogCancel>
+                                                                <AlertDialogAction
+                                                                    className="bg-red-600 hover:bg-red-700 hover:shadow-lg hover:cursor-pointer"
+                                                                    onClick={() =>
+                                                                        handleDelete(
+                                                                            p.id,
+                                                                        )
+                                                                    }
+                                                                >
+                                                                    Delete
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 

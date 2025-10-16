@@ -222,7 +222,7 @@ export default function PatientForm({ selected, onSaved }: Props) {
                 >
                     {uploading
                         ? 'Uploading...'
-                        : selected?.photo?.[0]?.url || photoPreview
+                        : selected?.photo?.[0]?.url
                         ? 'Change Image'
                         : 'Upload Image'}
                 </Button>
